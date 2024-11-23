@@ -1,0 +1,143 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header id="main-header">
+        <div class="container">
+            <h1>To-Do List</h1>
+            <form id="todo-form">
+                <input type="text" id="task-input" placeholder="e.g., Buy groceries" autofocus>
+                <button type="submit">Add Task</button>
+            </form>
+        </div>
+    </header>
+    <section>
+        <div class="container" id="main-content">
+            <ul class="stats">
+                <li><span>Remaining</span> <span id="remaining-tasks">0</span></li>
+                <li><span>Completed</span> <span id="completed-tasks">0</span></li>
+                <li><span>Total</span> <span id="total-tasks">0</span></li>
+            </ul>
+            <div class="filter-options">
+                <button id="all-filter">All</button>
+                <button id="completed-filter">Completed</button>
+                <button id="remaining-filter">Remaining</button>
+            </div>
+            <ul class="todos" id="todo-list"></ul>
+        </div>
+    </section>
+    <footer>
+        <div class="container">
+            <p><small>Design by Aisha</small></p>
+        </div>
+    </footer>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const todoForm = document.getElementById('todo-form');
+            const taskInput = document.getElementById('task-input');
+            const todoList = document.getElementById('todo-list');
+            const totalTasks = document.getElementById('total-tasks');
+            const completedTasks = document.getElementById('completed-tasks');
+            const remainingTasks = document.getElementById('remaining-tasks');
+            const allFilter = document.getElementById('all-filter');
+            const completedFilter = document.getElementById('completed-filter');
+            const remainingFilter = document.getElementById('remaining-filter');
+
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+
+            const saveTasks = () => {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            };
+
+            const updateTaskCounters = () => {
+                const completed = tasks.filter(task => task.isCompleted).length;
+                totalTasks.textContent = tasks.length;
+                completedTasks.textContent = completed;
+                remainingTasks.textContent = tasks.length - completed;
+            };
+
+            const createTaskElement = (task) => {
+                const taskEl = document.createElement('li');
+                taskEl.setAttribute('id', task.id);
+                taskEl.classList.toggle('complete', task.isCompleted);
+                taskEl.classList.add('task-item');
+
+                taskEl.innerHTML = `
+                    <div>
+                        <input type="checkbox" ${task.isCompleted ? 'checked' : ''}>
+                        <span ${!task.isCompleted ? 'contenteditable' : ''}>${task.name}</span>
+                    </div>
+                    <button class="remove-task" title="Remove task">❌</button>
+                `;
+
+                const checkbox = taskEl.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', () => {
+                    task.isCompleted = !task.isCompleted;
+                    taskEl.classList.toggle('complete', task.isCompleted);
+                    taskEl.querySelector('span').setAttribute('contenteditable', !task.isCompleted);
+                    saveTasks();
+                    updateTaskCounters();
+                });
+
+                const removeButton = taskEl.querySelector('.remove-task');
+                removeButton.addEventListener('click', () => {
+                    tasks = tasks.filter(t => t.id !== task.id);
+                    taskEl.remove();
+                    saveTasks();
+                    updateTaskCounters();
+                });
+
+                const editableSpan = taskEl.querySelector('span');
+                editableSpan.addEventListener('input', () => {
+                    task.name = editableSpan.textContent;
+                    saveTasks();
+                });
+
+                todoList.appendChild(taskEl);
+                taskEl.classList.add('fade-in'); // Add animation
+            };
+
+            const renderTasks = (filter = 'all') => {
+                todoList.innerHTML = '';
+                const filteredTasks = filter === 'completed' ? tasks.filter(task => task.isCompleted)
+                                      : filter === 'remaining' ? tasks.filter(task => !task.isCompleted)
+                                      : tasks;
+                filteredTasks.forEach(createTaskElement);
+            };
+
+            todoForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const taskName = taskInput.value.trim();
+                if (!taskName) return;
+
+                const newTask = {
+                    id: Date.now(),
+                    name: taskName,
+                    isCompleted: false
+                };
+                tasks.push(newTask);
+                saveTasks();
+                createTaskElement(newTask);
+                taskInput.value = '';
+                updateTaskCounters();
+            });
+
+            allFilter.addEventListener('click', () => renderTasks('all'));
+            completedFilter.addEventListener('click', () => renderTasks('completed'));
+            remainingFilter.addEventListener('click', () => renderTasks('remaining'));
+
+            // Initial load
+            tasks.forEach(createTaskElement);
+            updateTaskCounters();
+        });
+    </script>
+</body>
+</html>
+
